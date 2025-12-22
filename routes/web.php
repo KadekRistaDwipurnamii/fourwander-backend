@@ -2,10 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return response()->json([
-        'status' => 'OK',
-        'app' => 'FourWander Backend',
-        'time' => now()
-    ]);
+Route::middleware([])->get('/', function () {
+    echo 'FOURWANDER BACKEND OK';
+    exit;
 });
