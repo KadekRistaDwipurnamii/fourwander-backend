@@ -1,5 +1,8 @@
 <?php
-
+http_response_code(200);
+header('Content-Type: text/plain');
+echo "FOURWANDER BACKEND OK";
+exit;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
