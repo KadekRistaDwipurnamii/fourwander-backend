@@ -12,7 +12,7 @@ return new class extends Migration {
             // ⬇️ JANGAN TAMBAH status (SUDAH ADA)
 
             if (!Schema::hasColumn('bookings', 'payment_method')) {
-                $table->string('payment_method')->nullable()->after('status');
+                $table->string('payment_method')->nullable()->nullable();
             }
 
             if (!Schema::hasColumn('bookings', 'payment_reference')) {
