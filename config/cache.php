@@ -2,7 +2,7 @@
 
 return [
 
-    'default' => env('CACHE_STORE', 'file'),
+    'default' => 'file',
 
     'stores' => [
 
