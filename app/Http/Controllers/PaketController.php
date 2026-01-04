@@ -113,16 +113,16 @@ class PaketController extends Controller
             ? url('/images/paket/' . $paket->image)
             : null;
 
-        // GALERI
-        $paket->gallery = $paket->images
-            ? collect($paket->images)->map(function ($img) {
-                return url('/images/paket/' . $img);
-            })->toArray()
-            : [];
+        // GALERI 
+        $images = is_array($paket->images) ? $paket->images : [];
+        $paket->gallery = collect($images)->map(function ($img) {
+            return url('/images/paket/' . $img);
+        })->toArray();
 
-        // FASILITAS & ITINERARY
-        $paket->fasilitas = $paket->fasilitas ?? [];
-        $paket->itinerary = $paket->itinerary ?? [];
+        // FASILITAS & ITINERARY 
+        $paket->fasilitas = is_array($paket->fasilitas) ? $paket->fasilitas : [];
+        $paket->itinerary = is_array($paket->itinerary) ? $paket->itinerary : [];
+
 
         // DISKON
         $diskon = 0;
