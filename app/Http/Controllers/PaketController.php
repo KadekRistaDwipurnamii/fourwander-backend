@@ -69,7 +69,9 @@ class PaketController extends Controller
             : null;
 
         $paket->gallery = is_array($paket->images)
-            ? collect($paket->images)->map(fn ($img) => url('/images/paket/' . $img))->toArray()
+            ? collect($paket->images)
+                ->map(fn ($img) => url('/images/paket/' . $img))
+                ->toArray()
             : [];
 
         $paket->fasilitas = $paket->fasilitas ?? [];
