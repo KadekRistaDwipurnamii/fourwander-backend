@@ -1,35 +1,37 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaketController;
+use App\Http\Controllers\BooknowController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AdminDashboardController;
 
-// CONTACT
+
 Route::post('/contact', [ContactController::class, 'store']);
 
-// AUTH
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// PAKET
-Route::get('/paket', [PaketController::class, 'index']);
-Route::get('/paket/slug/{slug}', [PaketController::class, 'showBySlug']);
-Route::get('/paket/{id}', [PaketController::class, 'show'])->whereNumber('id');
+Route::get('/booknow', [BooknowController::class, 'index']);
 
-// BOOKING
+Route::get('/paket', [PaketController::class,'index']);
+Route::get('/paket/{id}', [PaketController::class,'show']);
+
+
 Route::post('/booking', [BookingController::class,'store']);
 Route::get('/bookings/{id}', [BookingController::class,'show']);
 Route::post('/booking/{id}/payment', [BookingController::class,'pay']);
 Route::get('/booking/{id}/invoice', [BookingController::class, 'invoice']);
 
-// ADMIN
+// admin
 Route::get('/admin/dashboard', [AdminDashboardController::class, 'dashboard']);
-Route::get('/admin/bookings', [BookingController::class,'index']);
+Route::get('/admin/bookings', [BookingController::class,'index']); // protect with middleware in prod
 
-// TEST
 Route::post('/test', function () {
-    return response()->json(['ok' => true]);
+    return response()->json([
+        'ok' => true
+    ]);
 });
