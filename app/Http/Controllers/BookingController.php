@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Paket;
-use App\Models\Discount;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
@@ -19,52 +18,47 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nama' => 'required|string',
-            'email' => 'nullable|email',
-            'hp' => 'required|string',
-            'jumlah_orang' => 'required|integer|min:1',
-            'tanggal' => 'required|date',
-            'paket_id' => 'required|exists:paket,id',
-            'extra' => 'nullable|array',
-            'catatan' => 'nullable|string',
-            'total_harga' => 'required|integer', // subtotal dari frontend
+            'nama'          => 'required|string',
+            'email'         => 'nullable|email',
+            'hp'            => 'required|string',
+            'jumlah_orang'  => 'required|integer|min:1',
+            'tanggal'       => 'required|date',
+            'paket_id'      => 'required|exists:paket,id',
+            'extra'         => 'nullable|array',
+            'catatan'       => 'nullable|string',
+            'total_harga'   => 'required|integer', // subtotal dari frontend
         ]);
 
-        $paket = Paket::with('discount')->findOrFail($data['paket_id']);
-        $today = Carbon::today();
+        // Ambil paket
+        $paket = Paket::findOrFail($data['paket_id']);
 
-        // HITUNG DISKON
-        $diskon = 0;
-        if (
-            $paket->discount &&
-            $paket->discount->is_active &&
-            $today->between($paket->discount->mulai, $paket->discount->berakhir)
-        ) {
-            $diskon = $paket->discount->potongan;
-        }
+        // ✅ DISKON FINAL (AMBIL LANGSUNG DARI KOLOM PAKET)
+        $diskon = (int) ($paket->diskon ?? 0);
 
+        // Hitung total akhir
         $totalAkhir = max(0, $data['total_harga'] - $diskon);
 
+        // Simpan booking
         $booking = Booking::create([
-            'user_id' => auth()->id(),
-            'nama' => $data['nama'],
-            'email' => $data['email'],
-            'hp' => $data['hp'],
-            'jumlah_orang' => $data['jumlah_orang'],
-            'tanggal' => $data['tanggal'],
-            'paket_id' => $data['paket_id'],
-            'extra' => $data['extra'] ?? [],
-            'catatan' => $data['catatan'] ?? null,
+            'user_id'        => auth()->id(),
+            'nama'           => $data['nama'],
+            'email'          => $data['email'],
+            'hp'             => $data['hp'],
+            'jumlah_orang'   => $data['jumlah_orang'],
+            'tanggal'        => $data['tanggal'],
+            'paket_id'       => $data['paket_id'],
+            'extra'          => $data['extra'] ?? [],
+            'catatan'        => $data['catatan'] ?? null,
 
-            'total_harga' => $data['total_harga'], // harga awal
-            'diskon' => $diskon,
-            'total_akhir' => $totalAkhir,
+            'total_harga'    => $data['total_harga'], // harga awal
+            'diskon'         => $diskon,               // ✅ DISKON MASUK
+            'total_akhir'    => $totalAkhir,
 
-            'status' => 'UNPAID',
+            'status'         => 'UNPAID',
         ]);
 
         return response()->json([
-            'success' => true,
+            'success'    => true,
             'booking_id' => $booking->id,
         ], 201);
     }
@@ -85,9 +79,9 @@ class BookingController extends Controller
             ], 404);
         }
 
-        $booking->payment_method = $request->payment_method ?? 'UNKNOWN';
+        $booking->payment_method    = $request->payment_method ?? 'UNKNOWN';
         $booking->payment_reference = $request->payment_reference ?? null;
-        $booking->status = 'PAID';
+        $booking->status            = 'PAID';
         $booking->save();
 
         return response()->json([
@@ -122,5 +116,4 @@ class BookingController extends Controller
 
         return response()->json($bookings);
     }
-
 }
