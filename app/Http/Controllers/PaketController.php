@@ -31,7 +31,7 @@ class PaketController extends Controller
             $query->where('harga', '<=', $request->max_harga);
         }
 
-        // SEARCH
+        // SEARCH NAMA
         if ($request->q) {
             $query->where('nama', 'LIKE', '%' . $request->q . '%');
         }
@@ -44,7 +44,7 @@ class PaketController extends Controller
 
         $pakets->getCollection()->transform(function ($p) use ($today) {
 
-            // IMAGE
+            // IMAGE UTAMA
             $p->image_url = $p->image
                 ? url('/images/paket/' . $p->image)
                 : null;
@@ -54,7 +54,10 @@ class PaketController extends Controller
             if (
                 $p->discount &&
                 $p->discount->is_active &&
-                $today->between($p->discount->mulai, $p->discount->berakhir)
+                $today->between(
+                    $p->discount->mulai,
+                    $p->discount->berakhir
+                )
             ) {
                 $diskon = $p->discount->potongan;
             }
@@ -72,14 +75,13 @@ class PaketController extends Controller
     /**
      * ===================================
      * DETAIL PAKET (OLD - BY ID)
-     * (BIAR AMAN / BACKWARD COMPATIBLE)
+     * (BACKWARD COMPATIBLE)
      * ===================================
      */
     public function show($id)
     {
-        return $this->formatDetail(
-            Paket::with('discount')->findOrFail($id)
-        );
+        $paket = Paket::with('discount')->findOrFail($id);
+        return $this->formatDetail($paket);
     }
 
     /**
@@ -89,17 +91,17 @@ class PaketController extends Controller
      */
     public function showBySlug($slug)
     {
-        return $this->formatDetail(
-            Paket::with('discount')
-                ->where('slug', $slug)
-                ->firstOrFail()
-        );
+        $paket = Paket::with('discount')
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return $this->formatDetail($paket);
     }
 
     /**
      * ===================================
      * FORMAT DETAIL RESPONSE
-     * (BIAR GA DUPLIKASI KODE)
+     * (BIAR TIDAK DUPLIKASI KODE)
      * ===================================
      */
     private function formatDetail(Paket $paket)
@@ -113,9 +115,9 @@ class PaketController extends Controller
 
         // GALERI
         $paket->gallery = $paket->images
-            ? collect($paket->images)->map(fn ($img) =>
-                url('/images/paket/' . $img)
-            )->toArray()
+            ? collect($paket->images)->map(function ($img) {
+                return url('/images/paket/' . $img);
+            })->toArray()
             : [];
 
         // FASILITAS & ITINERARY
@@ -127,7 +129,10 @@ class PaketController extends Controller
         if (
             $paket->discount &&
             $paket->discount->is_active &&
-            $today->between($paket->discount->mulai, $paket->discount->berakhir)
+            $today->between(
+                $paket->discount->mulai,
+                $paket->discount->berakhir
+            )
         ) {
             $diskon = $paket->discount->potongan;
         }
