@@ -89,14 +89,21 @@ class PaketController extends Controller
      * DETAIL PAKET (SEO - BY SLUG)
      * ===================================
      */
-    public function showBySlug($slug)
+   public function showBySlug($slug)
     {
+        if (!$slug || $slug === 'undefined') {
+            return response()->json([
+                'message' => 'Slug tidak valid'
+            ], 400);
+        }
+
         $paket = Paket::with('discount')
             ->where('slug', $slug)
             ->firstOrFail();
 
         return $this->formatDetail($paket);
     }
+
 
     /**
      * ===================================
@@ -110,7 +117,7 @@ class PaketController extends Controller
 
         // IMAGE UTAMA
         $paket->image_url = $paket->image
-            ? url('/images/paket/' . $paket->image)
+            ? secure_url('/images/paket/' . $paket->image)
             : null;
 
         // GALERI 
