@@ -49,19 +49,6 @@ class PaketController extends Controller
                 ? url('/images/paket/' . $p->image)
                 : null;
 
-            // DISKON
-            $diskon = 0;
-            if (
-                $p->discount &&
-                $p->discount->is_active &&
-                $today->between(
-                    $p->discount->mulai,
-                    $p->discount->berakhir
-                )
-            ) {
-                $diskon = $p->discount->potongan;
-            }
-
             $p->diskon = $diskon;
             $p->harga_asli = $p->harga;
             $p->harga_setelah_diskon = max(0, $p->harga - $diskon);
