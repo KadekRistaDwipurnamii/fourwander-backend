@@ -4,17 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Paket;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PaketController extends Controller
 {
     /**
      * ===============================
-     * LIST PAKET
+     * LIST PAKET (HOME / LISTING)
      * ===============================
      */
     public function index(Request $request)
     {
-        $query = Paket::query();
+        $query = Paket::with('discount');
 
         if ($request->kategori) {
             $query->where('kategori', $request->kategori);
@@ -32,12 +33,36 @@ class PaketController extends Controller
             $query->where('nama', 'LIKE', '%' . $request->q . '%');
         }
 
-        $pakets = $query->paginate(6);
+        $perPage = $request->query('per_page', 6);
+        $pakets = $query->paginate($perPage);
 
-        $pakets->getCollection()->transform(function ($p) {
+        $today = Carbon::today();
+
+        $pakets->getCollection()->transform(function ($p) use ($today) {
+
+            // IMAGE
             $p->image_url = $p->image
                 ? secure_url('images/paket/' . $p->image)
                 : null;
+
+            // HITUNG DISKON
+            $diskon = 0;
+            if ($p->discount && $p->discount->is_active) {
+                try {
+                    $mulai = Carbon::parse($p->discount->mulai);
+                    $berakhir = Carbon::parse($p->discount->berakhir);
+
+                    if ($today->between($mulai, $berakhir)) {
+                        $diskon = (int) $p->discount->potongan;
+                    }
+                } catch (\Throwable $e) {
+                    $diskon = 0;
+                }
+            }
+
+            $p->harga_asli = $p->harga;
+            $p->diskon = $diskon;
+            $p->harga_setelah_diskon = max(0, $p->harga - $diskon);
 
             return $p;
         });
@@ -46,20 +71,20 @@ class PaketController extends Controller
     }
 
     /**
-     * ===============================
-     * DETAIL BY ID (BACKUP)
-     * ===============================
+     * ===================================
+     * DETAIL PAKET (OLD - BY ID)
+     * ===================================
      */
     public function show($id)
     {
-        $paket = Paket::findOrFail($id);
+        $paket = Paket::with('discount')->findOrFail($id);
         return $this->formatDetail($paket);
     }
 
     /**
-     * ===============================
-     * DETAIL BY SLUG (SEO)
-     * ===============================
+     * ===================================
+     * DETAIL PAKET (SEO - BY SLUG)
+     * ===================================
      */
     public function showBySlug($slug)
     {
@@ -69,33 +94,53 @@ class PaketController extends Controller
             ], 400);
         }
 
-        $paket = Paket::where('slug', $slug)->firstOrFail();
+        $paket = Paket::with('discount')
+            ->where('slug', $slug)
+            ->firstOrFail();
+
         return $this->formatDetail($paket);
     }
 
     /**
-     * ===============================
-     * FORMAT RESPONSE
-     * ===============================
+     * ===================================
+     * FORMAT DETAIL RESPONSE
+     * ===================================
      */
     private function formatDetail(Paket $paket)
     {
+        $today = Carbon::today();
+
         $paket->image_url = $paket->image
             ? secure_url('images/paket/' . $paket->image)
             : null;
 
-        $paket->gallery = is_array($paket->images)
-            ? collect($paket->images)->map(fn ($img) => secure_url('images/paket/' . $img))->toArray()
-            : [];
+        $images = json_decode($paket->images ?? '[]', true);
+        $paket->gallery = collect($images)->map(fn ($img) =>
+            secure_url('images/paket/' . $img)
+        )->toArray();
 
-        $paket->fasilitas = is_array($paket->fasilitas) ? $paket->fasilitas : [];
-        $paket->itinerary = is_array($paket->itinerary) ? $paket->itinerary : [];
+        $paket->fasilitas = json_decode($paket->fasilitas ?? '[]', true);
+        $paket->itinerary = json_decode($paket->itinerary ?? '[]', true);
+
+        $diskon = 0;
+        if ($paket->discount && $paket->discount->is_active) {
+            try {
+                $mulai = Carbon::parse($paket->discount->mulai);
+                $berakhir = Carbon::parse($paket->discount->berakhir);
+
+                if ($today->between($mulai, $berakhir)) {
+                    $diskon = (int) $paket->discount->potongan;
+                }
+            } catch (\Throwable $e) {
+                $diskon = 0;
+            }
+        }
 
         return response()->json([
             'paket' => $paket,
             'harga_asli' => $paket->harga,
-            'diskon' => 0,
-            'harga_setelah_diskon' => $paket->harga,
+            'diskon' => $diskon,
+            'harga_setelah_diskon' => max(0, $paket->harga - $diskon),
         ]);
     }
 }
