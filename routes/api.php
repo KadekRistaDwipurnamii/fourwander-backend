@@ -18,7 +18,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/booknow', [BooknowController::class, 'index']);
 
 Route::get('/paket', [PaketController::class,'index']);
-Route::get('/paket/{slug}', [PaketController::class, 'showBySlug']);
+Route::get('/paket/slug/{slug}', [PaketController::class, 'showBySlug']);
 Route::get('/paket/{id}', [PaketController::class, 'show'])
     ->whereNumber('id');
 
