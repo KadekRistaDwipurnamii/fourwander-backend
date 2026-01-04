@@ -137,13 +137,18 @@ class PaketController extends Controller
 
         // DISKON
         $diskon = 0;
-        if (
-            $paket->discount &&
-            $paket->discount->is_active &&
-            $today->between($paket->discount->mulai, $paket->discount->berakhir)
-        ) {
-            $diskon = $paket->discount->potongan;
-        }
+            if ($paket->discount && $paket->discount->is_active) {
+                try {
+                    $mulai = Carbon::parse($paket->discount->mulai);
+                    $berakhir = Carbon::parse($paket->discount->berakhir);
+
+                    if ($today->between($mulai, $berakhir)) {
+                        $diskon = (int) $paket->discount->potongan;
+                    }
+                } catch (\Throwable $e) {
+                    $diskon = 0;
+                }
+            }
 
         return response()->json([
             'paket' => $paket,
