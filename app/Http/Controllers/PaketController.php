@@ -115,31 +115,32 @@ class PaketController extends Controller
     {
         $today = Carbon::today();
 
-        // IMAGE UTAMA
         $paket->image_url = $paket->image
-            ? secure_url('/images/paket/' . $paket->image)
+            ? secure_url('images/paket/' . $paket->image)
             : null;
 
-        // GALERI 
-        $images = is_array($paket->images) ? $paket->images : [];
-        $paket->gallery = collect($images)->map(function ($img) {
-            return url('/images/paket/' . $img);
-        })->toArray();
+        $images = is_array($paket->images)
+            ? $paket->images
+            : json_decode($paket->images ?? '[]', true);
 
-        // FASILITAS & ITINERARY 
-        $paket->fasilitas = is_array($paket->fasilitas) ? $paket->fasilitas : [];
-        $paket->itinerary = is_array($paket->itinerary) ? $paket->itinerary : [];
+        $paket->gallery = collect($images)->map(fn ($img) =>
+            secure_url('images/paket/' . $img)
+        )->toArray();
 
+        $paket->fasilitas = is_array($paket->fasilitas)
+            ? $paket->fasilitas
+            : json_decode($paket->fasilitas ?? '[]', true);
+
+        $paket->itinerary = is_array($paket->itinerary)
+            ? $paket->itinerary
+            : json_decode($paket->itinerary ?? '[]', true);
 
         // DISKON
         $diskon = 0;
         if (
             $paket->discount &&
             $paket->discount->is_active &&
-            $today->between(
-                $paket->discount->mulai,
-                $paket->discount->berakhir
-            )
+            $today->between($paket->discount->mulai, $paket->discount->berakhir)
         ) {
             $diskon = $paket->discount->potongan;
         }
@@ -151,4 +152,5 @@ class PaketController extends Controller
             'harga_setelah_diskon' => max(0, $paket->harga - $diskon),
         ]);
     }
+
 }
