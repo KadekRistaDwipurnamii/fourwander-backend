@@ -4,23 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\Paket;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PaketController extends Controller
 {
     /**
      * ===============================
-     * LIST PAKET
+     * LIST PAKET (HOME / LISTING)
      * ===============================
      */
     public function index(Request $request)
     {
-        $query = Paket::query();
+        $query = Paket::with('discount');
 
-        // FILTER
+        /* ===============================
+         * FILTER
+         * =============================== */
+
+        // Filter kategori
         if ($request->kategori) {
             $query->where('kategori', $request->kategori);
         }
 
+        // Filter harga
         if ($request->min_harga) {
             $query->where('harga', '>=', $request->min_harga);
         }
@@ -29,22 +35,44 @@ class PaketController extends Controller
             $query->where('harga', '<=', $request->max_harga);
         }
 
+        // Search nama
         if ($request->q) {
             $query->where('nama', 'LIKE', '%' . $request->q . '%');
         }
 
-        $pakets = $query->paginate(6);
+        /* ===============================
+         * PAGINATION
+         * =============================== */
+        $perPage = $request->query('per_page', 6);
+        $pakets  = $query->paginate($perPage);
 
-        $pakets->getCollection()->transform(function ($p) {
+        $today = Carbon::today();
 
-            $diskon = (int) ($p->diskon ?? 0);
+        /* ===============================
+         * TRANSFORM DATA
+         * =============================== */
+        $pakets->getCollection()->transform(function ($p) use ($today) {
 
+            // Image utama
             $p->image_url = $p->image
                 ? url('/images/paket/' . $p->image)
                 : null;
 
-            $p->harga_asli = $p->harga;
+            // Hitung diskon
+            $diskon = 0;
+            if (
+                $p->discount &&
+                $p->discount->is_active &&
+                $today->between(
+                    $p->discount->mulai,
+                    $p->discount->berakhir
+                )
+            ) {
+                $diskon = $p->discount->potongan;
+            }
+
             $p->diskon = $diskon;
+            $p->harga_asli = $p->harga;
             $p->harga_setelah_diskon = max(0, $p->harga - $diskon);
 
             return $p;
@@ -55,27 +83,52 @@ class PaketController extends Controller
 
     /**
      * ===============================
-     * DETAIL PAKET
+     * DETAIL PAKET (CHECKOUT)
      * ===============================
      */
     public function show($id)
     {
-        $paket = Paket::findOrFail($id);
+        $paket = Paket::with('discount')->findOrFail($id);
+        $today = Carbon::today();
 
-        $diskon = (int) ($paket->diskon ?? 0);
-
+        /* ===============================
+         * IMAGE UTAMA
+         * =============================== */
         $paket->image_url = $paket->image
             ? url('/images/paket/' . $paket->image)
             : null;
 
-        $paket->gallery = is_array($paket->images)
-            ? collect($paket->images)
+        /* ===============================
+         * GALERI
+         * =============================== */
+        if ($paket->images) {
+            $paket->gallery = collect($paket->images)
                 ->map(fn ($img) => url('/images/paket/' . $img))
-                ->toArray()
-            : [];
+                ->toArray();
+        } else {
+            $paket->gallery = [];
+        }
 
+        /* ===============================
+         * FASILITAS & ITINERARY
+         * =============================== */
         $paket->fasilitas = $paket->fasilitas ?? [];
         $paket->itinerary = $paket->itinerary ?? [];
+
+        /* ===============================
+         * HITUNG DISKON
+         * =============================== */
+        $diskon = 0;
+        if (
+            $paket->discount &&
+            $paket->discount->is_active &&
+            $today->between(
+                $paket->discount->mulai,
+                $paket->discount->berakhir
+            )
+        ) {
+            $diskon = $paket->discount->potongan;
+        }
 
         return response()->json([
             'paket' => $paket,
