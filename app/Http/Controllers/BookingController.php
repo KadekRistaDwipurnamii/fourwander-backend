@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Paket;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -25,13 +26,13 @@ class BookingController extends Controller
             'paket_id'      => 'required|exists:paket,id',
             'extra'         => 'nullable|array',
             'catatan'       => 'nullable|string',
-            'total_harga'   => 'required|integer',
+            'total_harga'   => 'required|integer', // subtotal dari frontend
         ]);
 
         // Ambil paket
         $paket = Paket::findOrFail($data['paket_id']);
 
-        // ✅ DISKON LANGSUNG DARI KOLOM paket.diskon
+        // ✅ DISKON FINAL (AMBIL LANGSUNG DARI KOLOM PAKET)
         $diskon = (int) ($paket->diskon ?? 0);
 
         // Hitung total akhir
@@ -49,8 +50,8 @@ class BookingController extends Controller
             'extra'          => $data['extra'] ?? [],
             'catatan'        => $data['catatan'] ?? null,
 
-            'total_harga'    => $data['total_harga'],
-            'diskon'         => $diskon,        // ✅ MASUK DB
+            'total_harga'    => $data['total_harga'], // harga awal
+            'diskon'         => $diskon,               // ✅ DISKON MASUK
             'total_akhir'    => $totalAkhir,
 
             'status'         => 'UNPAID',
@@ -64,7 +65,7 @@ class BookingController extends Controller
 
     /**
      * =====================================
-     * PAYMENT
+     * PAYMENT (SET STATUS PAID)
      * =====================================
      */
     public function pay(Request $request, $id)
