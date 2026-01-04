@@ -31,7 +31,7 @@ class PaketController extends Controller
             $query->where('harga', '<=', $request->max_harga);
         }
 
-        // SEARCH NAMA
+        // SEARCH
         if ($request->q) {
             $query->where('nama', 'LIKE', '%' . $request->q . '%');
         }
@@ -42,10 +42,9 @@ class PaketController extends Controller
 
         $today = Carbon::today();
 
-        // TRANSFORM DATA
         $pakets->getCollection()->transform(function ($p) use ($today) {
 
-            // IMAGE UTAMA
+            // IMAGE
             $p->image_url = $p->image
                 ? url('/images/paket/' . $p->image)
                 : null;
@@ -55,10 +54,7 @@ class PaketController extends Controller
             if (
                 $p->discount &&
                 $p->discount->is_active &&
-                $today->between(
-                    $p->discount->mulai,
-                    $p->discount->berakhir
-                )
+                $today->between($p->discount->mulai, $p->discount->berakhir)
             ) {
                 $diskon = $p->discount->potongan;
             }
@@ -74,14 +70,40 @@ class PaketController extends Controller
     }
 
     /**
-     * ===============================
-     * DETAIL PAKET (CHECKOUT)
-     * ===============================
+     * ===================================
+     * DETAIL PAKET (OLD - BY ID)
+     * (BIAR AMAN / BACKWARD COMPATIBLE)
+     * ===================================
      */
     public function show($id)
     {
-        $paket = Paket::with('discount')->findOrFail($id);
+        return $this->formatDetail(
+            Paket::with('discount')->findOrFail($id)
+        );
+    }
 
+    /**
+     * ===================================
+     * DETAIL PAKET (SEO - BY SLUG)
+     * ===================================
+     */
+    public function showBySlug($slug)
+    {
+        return $this->formatDetail(
+            Paket::with('discount')
+                ->where('slug', $slug)
+                ->firstOrFail()
+        );
+    }
+
+    /**
+     * ===================================
+     * FORMAT DETAIL RESPONSE
+     * (BIAR GA DUPLIKASI KODE)
+     * ===================================
+     */
+    private function formatDetail(Paket $paket)
+    {
         $today = Carbon::today();
 
         // IMAGE UTAMA
@@ -89,14 +111,12 @@ class PaketController extends Controller
             ? url('/images/paket/' . $paket->image)
             : null;
 
-        // GALERI (JSON images)
-        if ($paket->images) {
-            $paket->gallery = collect($paket->images)->map(function ($img) {
-                return url('/images/paket/' . $img);
-            })->toArray();
-        } else {
-            $paket->gallery = [];
-        }
+        // GALERI
+        $paket->gallery = $paket->images
+            ? collect($paket->images)->map(fn ($img) =>
+                url('/images/paket/' . $img)
+            )->toArray()
+            : [];
 
         // FASILITAS & ITINERARY
         $paket->fasilitas = $paket->fasilitas ?? [];
@@ -107,10 +127,7 @@ class PaketController extends Controller
         if (
             $paket->discount &&
             $paket->discount->is_active &&
-            $today->between(
-                $paket->discount->mulai,
-                $paket->discount->berakhir
-            )
+            $today->between($paket->discount->mulai, $paket->discount->berakhir)
         ) {
             $diskon = $paket->discount->potongan;
         }

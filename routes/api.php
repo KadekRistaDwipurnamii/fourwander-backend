@@ -19,6 +19,7 @@ Route::get('/booknow', [BooknowController::class, 'index']);
 
 Route::get('/paket', [PaketController::class,'index']);
 Route::get('/paket/{id}', [PaketController::class,'show']);
+Route::get('/paket/{slug}', [PaketController::class, 'showBySlug']);
 
 Route::post('/booking', [BookingController::class,'store']);
 Route::get('/bookings/{id}', [BookingController::class,'show']);
